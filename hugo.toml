@@ -1,0 +1,14 @@
+baseURL = "http://example.com/"
+languageCode = "en-us"
+title = "Research Paper Title"
+theme = "PaperMod"
+summaryLength = 150
+
+[params]
+  author = "Author Name, Co-Author Name"
+  description = "An IEEE-style research paper website"
+  showReadingTime = false
+  showToc = true
+  disableSummary = true
+  showBreadCrumbs = false
+  showPostNavLinks = false
