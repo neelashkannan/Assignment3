@@ -1,48 +1,274 @@
----
-title: "Research Paper Title"
-date: 2024-11-18
-draft: false
----
+# Building an Energy-Efficient Wireless Sensor Network Using ESP32, ESP-NOW, and MQTT
 
-# Research Paper Title
+In this project, we will create a robust and energy-efficient **wireless sensor network** using **ESP32** boards. Sensor data will be collected from **DHT11 temperature and humidity sensors** and transmitted using **ESP-NOW**, a low-power communication protocol. The data will then be forwarded to an MQTT broker via a bridge ESP32 connected over I2C, solving the challenge of Wi-Fi interruptions while using ESP-NOW.
 
-**Author Name\*, Co-Author Name\*\***
-
-*Affiliations or Institution*
+This project is ideal for scenarios like remote environmental monitoring or smart agriculture, where efficient data transmission and power conservation are critical.
 
 ---
 
-## Abstract
-The abstract is a brief summary of the research. It usually covers the objectives, methodology, results, and conclusion.
+## Features
+1. **Energy Efficiency:** Sender nodes use light sleep mode to conserve power.
+2. **Robust Wireless Communication:** ESP-NOW ensures low-latency, Wi-Fi-independent communication.
+3. **Scalable Data Management:** Data is forwarded to an MQTT broker for remote monitoring and integration with IoT platforms.
+4. **Battery Life Optimization:** Includes calculations to estimate battery runtime for sender nodes powered by a 3.7V 1500mAh battery.
 
 ---
 
-## Introduction
-The introduction provides context to the study, defines the problem, and outlines the purpose and objectives of the research.
+## System Architecture
 
-## Methodology
-Explain the methods used to gather data and conduct the research. Describe any tools, techniques, or approaches used.
+### System Diagram
+![Architecture Diagram](https://via.placeholder.com/1024x768.png?text=Architecture+Diagram)
 
-## Results
-Summarize the findings of the research. Use bullet points, tables, or charts if necessary to present data clearly.
+---
 
-## Discussion
+### Components
+1. **Sender Nodes (2 ESP32s):**
+   - Read data from DHT11 sensors.
+   - Transmit data to the receiver via ESP-NOW.
+   - Enter light sleep mode between transmissions for energy efficiency.
 
-### ESP-Now and MQTT Connection Challenges 
+2. **Receiver Node (1 ESP32):**
+   - Collects data from both sender nodes using ESP-NOW.
+   - Forwards the data to the bridge node over I2C communication.
 
-Integrating ESP-Now and MQTT posed a significant challenge due to their conflicting requirements. ESP-Now is designed for low-power, peer-to-peer communication without relying on traditional WiFi networks, whereas MQTT depends on WiFi for client-to-broker communication. Attempting to use both on the same ESP32 created conflicts that resulted in inconsistent data transmission and frequent disconnections. Despite experimenting with different configurations, such as alternating between ESP-Now and WiFi modes, the implementation remained unreliable. This led us to explore potential alternatives, such as separating roles across devices, which aligns with the professor's suggestions. One approach was to designate a single ESP32 as an ESP-Now master gateway and relay data through a second ESP32 or a laptop using a USB serial connection.
+3. **Bridge Node (1 ESP32):**
+   - Receives data from the receiver node via I2C.
+   - Publishes the data to an MQTT broker for IoT integration.
 
-### Synchronizing Four ESP32 Devices and Professor's Recommendations 
+---
 
-Managing four ESP32s within the network added complexity, particularly in ensuring seamless communication and role allocation. Assigning specific tasks, such as one ESP32 as an ESP-Now master and another as an MQTT relay, required significant troubleshooting to address connectivity drops and data loss. The professor’s insights offered practical solutions to these challenges. Specifically, the recommendation to designate an ESP-Now master connected to another ESP32 via RS232 or i2c for MQTT forwarding was a promising approach. Alternatively, connecting the ESP-Now master to a laptop via USB and using a Python-based MQTT client provided an efficient and flexible workaround. These strategies helped reframe the project’s architecture to better accommodate the limitations of ESP-Now and MQTT coexistence. 
+## Step 1: Hardware Setup
+
+### Materials Required
+- 4x **ESP32 boards**
+- 2x **DHT11 Sensors**
+- Jumper Wires
+- Breadboard
+- Power supply or batteries for sender nodes
+
+### Wiring Diagrams
+
+#### Sender Node:
+| Component | ESP32 Pin |
+|-----------|-----------|
+| VCC       | 3.3V      |
+| GND       | GND       |
+| Data      | GPIO4     |
+
+#### Receiver Node and Bridge Node:
+- Receiver and Bridge are connected via I2C:
+  - **SDA (Receiver):** GPIO21 -> **SDA (Bridge):** GPIO21
+  - **SCL (Receiver):** GPIO22 -> **SCL (Bridge):** GPIO22
+
+---
+
+## Step 2: Configuring Sender Nodes
+
+The sender nodes will:
+1. Read temperature and humidity from the DHT11 sensor.
+2. Send the data via ESP-NOW to the receiver ESP32.
+3. Enter light sleep mode to save energy.
+
+### Sender Node Code
+
+```cpp
+#include <esp_now.h>
+#include <WiFi.h>
+#include <DHT.h>
+
+#define DHTPIN 4
+#define DHTTYPE DHT11
+
+DHT dht(DHTPIN, DHTTYPE);
+
+// Structure to hold data
+typedef struct struct_message {
+  float temperature;
+  float humidity;
+} struct_message;
+
+struct_message sensorData;
+
+uint8_t receiverAddress[] = {0x24, 0x6F, 0x28, 0xAB, 0xCD, 0xEF}; // Replace with receiver MAC
+
+void setup() {
+  Serial.begin(115200);
+  WiFi.mode(WIFI_STA);
+  dht.begin();
+
+  // Initialize ESP-NOW
+  if (esp_now_init() != ESP_OK) {
+    Serial.println("Error initializing ESP-NOW");
+    return;
+  }
+
+  // Register peer
+  esp_now_peer_info_t peerInfo;
+  memcpy(peerInfo.peer_addr, receiverAddress, 6);
+  peerInfo.channel = 0;
+  peerInfo.encrypt = false;
+
+  if (esp_now_add_peer(&peerInfo) != ESP_OK) {
+    Serial.println("Failed to add peer");
+    return;
+  }
+}
+
+void loop() {
+  // Read sensor data
+  sensorData.temperature = dht.readTemperature();
+  sensorData.humidity = dht.readHumidity();
+
+  if (isnan(sensorData.temperature) || isnan(sensorData.humidity)) {
+    Serial.println("Failed to read from DHT sensor!");
+    return;
+  }
+
+  // Send data via ESP-NOW
+  esp_now_send(receiverAddress, (uint8_t *)&sensorData, sizeof(sensorData));
+  Serial.println("Data sent!");
+
+  // Enter light sleep mode
+  esp_sleep_enable_timer_wakeup(10 * 1000000); // 10 seconds
+  esp_light_sleep_start();
+}
+```
+## Step 3: Configuring the Receiver Node
+# The receiver node will:
+
+1. Receive data from both sender nodes via ESP-NOW.
+2. Forward the data to the bridge node over I2C.
+3. Receiver Node Code
+
+```cpp
+#include <esp_now.h>
+#include <WiFi.h>
+#include <Wire.h>
+
+// Structure to hold received data
+typedef struct struct_message {
+  float temperature;
+  float humidity;
+} struct_message;
+
+struct_message receivedData;
+
+// Callback when data is received
+void onDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len) {
+  memcpy(&receivedData, incomingData, sizeof(receivedData));
+  Wire.beginTransmission(8); // I2C address of bridge node
+  Wire.write((uint8_t *)&receivedData, sizeof(receivedData));
+  Wire.endTransmission();
+  Serial.printf("Data received: Temp: %.2f, Humidity: %.2f\n", receivedData.temperature, receivedData.humidity);
+}
+
+void setup() {
+  Serial.begin(115200);
+  WiFi.mode(WIFI_STA);
+  Wire.begin(21, 22); // I2C pins SDA=21, SCL=22
+
+  // Initialize ESP-NOW
+  if (esp_now_init() != ESP_OK) {
+    Serial.println("Error initializing ESP-NOW");
+    return;
+  }
+
+  esp_now_register_recv_cb(onDataRecv);
+}
+
+void loop() {
+  delay(1000); // Keep running
+}
+```
+## Step 4: Setting Up the MQTT Bridge
+
+### The bridge node will:
+
+1. Receive sensor data from the receiver node via I2C.
+2. Publish the data to the MQTT broker.
+
+### Bridge Node Code
+
+```cpp
+#include <Wire.h>
+#include <WiFi.h>
+#include <PubSubClient.h>
+
+const char *ssid = "YourSSID";
+const char *password = "YourPassword";
+const char *mqtt_server = "YourMQTTBrokerIP";
+
+WiFiClient espClient;
+PubSubClient client(espClient);
+
+typedef struct struct_message {
+  float temperature;
+  float humidity;
+} struct_message;
+
+struct_message receivedData;
+
+void setup_wifi() {
+  delay(10);
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("WiFi connected");
+}
+
+void setup() {
+  Serial.begin(115200);
+  setup_wifi();
+  client.setServer(mqtt_server, 1883);
+  Wire.begin(21, 22); // I2C pins SDA=21, SCL=22
+}
+
+void loop() {
+  Wire.requestFrom(8, sizeof(receivedData)); // I2C address of receiver node
+  if (Wire.available()) {
+    Wire.readBytes((char *)&receivedData, sizeof(receivedData));
+    char tempStr[8], humStr[8];
+    dtostrf(receivedData.temperature, 1, 2, tempStr);
+    dtostrf(receivedData.humidity, 1, 2, humStr);
+
+    if (!client.connected()) {
+      client.connect("ESP32Bridge");
+    }
+
+    client.publish("sensors/temperature", tempStr);
+    client.publish("sensors/humidity", humStr);
+    Serial.printf("Published: Temp: %s, Humidity: %s\n", tempStr, humStr);
+  }
+
+  client.loop();
+  delay(2000);
+}
+```
+## Step 5: Duty Cycle and Battery Life Estimation
+
+### Duty Cycle Calculation
+
+The total cycle time:
+
+T_cycle = T_active + T_sleep = 0.15 + 10 = 10.15 seconds
+
+The duty cycle:
+
+Duty Cycle = (T_active / T_cycle) * 100 = (0.15 / 10.15) * 100 ≈ 1.48%
+
+### Battery Life Estimation
+
+Using a 3.7V 1500mAh Li-ion battery:
+
+Battery Life (hours) = Battery Capacity (mAh) / I_avg ≈ 1500 / 3.55 ≈ 422.5 hours
+
+In days:
+
+Battery Life (days) ≈ 422.5 / 24 ≈ 17.6 days
 
 ## Conclusion
 
-The project demonstrated the feasibility of integrating ESP-Now and MQTT to create a reliable IoT network using ESP32 microcontrollers. The process began with establishing a connection among multiple ESP32s using ESP-Now, which provided low-latency peer-to-peer communication. This was followed by utilizing MQTT to transmit data gathered from the DHT11 sensors to Node-RED for visualization and monitoring.Ultimately, the project contributes valuable insights into IoT architecture design, emphasizing the significance of balancing technical feasibility with system scalability and performance. This endeavor sets a strong foundation for future work, including refining communication protocols and exploring hybrid solutions for IoT networks.While the dual integration of ESP-Now and MQTT proved to be challenging, particularly due to conflicts arising from simultaneous usage of WiFi and ESP-Now, the project successfully illustrated how data transmission can be achieved efficiently within constrained IoT ecosystems. This work underscores the importance of creative problem-solving, such as implementing a gateway ESP32 or alternative communication methods as highlighted by the professor, in overcoming technical limitations.
- 
----
+This project demonstrates how to build a low-power wireless sensor network with ESP32, ESP-NOW, and MQTT. With a duty cycle of approximately 1.48% and a battery life of over 17 days, this setup is ideal for scenarios requiring periodic data transmission and efficient energy management.
 
-## References
-1. **Reference 1**: Author, Title, Journal/Book, Year.
-2. **Reference 2**: Author, Title, Journal/Book, Year.
-3. **Reference 3**: Author, Title, Journal/Book, Year.
