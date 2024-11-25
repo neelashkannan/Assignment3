@@ -246,17 +246,62 @@ void loop() {
   delay(2000);
 }
 ```
-## Step 5: Duty Cycle and Battery Life Estimation
+# Duty Cycle Calculation
 
-### Duty Cycle Calculation
+The steps to calculate the **Duty Cycle** based on the data provided from the sender and receiver logs.
 
-The total cycle time:
+---
 
-T_cycle = T_active + T_sleep = 0.15 + 10 = 10.15 seconds
+## 1. Definitions
 
-The duty cycle:
+- **Active Time per Cycle (`T_active`)**: 
+  - The time the sender is actively transmitting data.
+  - From the logs, this is approximately **17 ms** per transmission.
 
-Duty Cycle = (T_active / T_cycle) * 100 = (0.15 / 10.15) * 100 ≈ 1.48%
+- **Cycle Period (`T_cycle`)**: 
+  - The time interval between consecutive transmissions.
+
+## 2. Data Analysis
+
+From the sender timestamps:
+- `5194 - 168 = 5026 ms`
+- `10219 - 5194 = 5025 ms`
+- `15244 - 10219 = 5025 ms`
+- `20269 - 15244 = 5025 ms`
+- `25294 - 20269 = 5025 ms`
+
+### Average Cycle Period:
+
+T_cycle ≈ 5025 ms = 5.025 seconds
+
+## 3. Formula
+
+The Duty Cycle is calculated using the formula:
+  Duty Cycle = (T_active / T_cycle) × 100
+
+---
+
+## 4. Calculation
+
+### Step 1: Calculate Active Time (`T_active`):
+From the receiver logs, the time taken per transmission is:
+  T_active = 17 ms = 0.017 seconds
+
+### Step 2: Calculate Duty Cycle:
+Substitute the values into the formula:
+  Duty Cycle = (0.017 / 5.025) × 100
+
+Perform the division:
+  0.017 / 5.025 ≈ 0.003384
+
+Multiply by 100:
+  Duty Cycle ≈ 0.34%
+---
+
+## Final Answer:
+
+The duty cycle for this sender is approximately:
+0.34%
 
 ### Battery Life Estimation
 
