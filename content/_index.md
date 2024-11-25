@@ -17,7 +17,7 @@ This project is ideal for scenarios like remote environmental monitoring or smar
 ## System Architecture
 
 ### System Diagram
-![Architecture Diagram](https://via.placeholder.com/1024x768.png?text=Architecture+Diagram)
+![Architecture Diagram](architectureWB.png)
 
 ---
 
@@ -303,17 +303,68 @@ Multiply by 100:
 The duty cycle for this sender is approximately:
 0.34%
 
-### Battery Life Estimation
+Low Duty Cycle means that the device is spending most of its time in sleep mode, and only a small portion of the time is spent transmitting data. This results in lower power consumption and extended battery life, which is particularly important for battery-operated devices like the one you're building.
 
-Using a 3.7V 1500mAh Li-ion battery:
+In our case, only 0.34% of the time is spent transmitting data, while the rest (99.66%) is spent in light sleep mode, conserving energy.
 
-Battery Life (hours) = Battery Capacity (mAh) / I_avg ≈ 1500 / 3.55 ≈ 422.5 hours
+## 2. Average Current Consumption
 
-In days:
+Key power consumption values for ESP-NOW communication:
 
-Battery Life (days) ≈ 422.5 / 24 ≈ 17.6 days
+![image](<current.png>)
+
+the above image was refered in this website [deepblueembedded](https://deepbluembedded.com/esp32-sleep-modes-power-consumption/#:~:text=ESP32%20Active%20mode%20current%20consumption%20is%3A%20%2895~240%29%20mA%2C,clock%20speed%20at%20which%20you%E2%80%99re%20operating%20the%20microcontroller.)
+
+
+### Average Current Formula
+
+```
+Iavg = (Itransmission × Duty Cycle) + (Isleep × (1 - Duty Cycle))
+```
+
+Calculation:
+```
+Iavg = (180 × 0.0034) + (0.02 × 0.9966)
+Iavg = 0.612 mA + 0.02 mA = 0.632 mA
+```
+
+**Result**: The average current consumption is approximately **0.632 mA**
+
+## 3. Battery Life Estimation
+
+Using a 1500mAh 3.7V 18650 battery:
+
+### Battery Life Formula
+
+```
+Battery Life = Battery Capacity / Iavg
+```
+
+Calculation:
+```
+Battery Life = 1500 mAh / 0.632 mA ≈ 2373 hours
+Battery Life ≈ 2373 hours ≈ 99 days
+```
+
+**Result**: The estimated battery life is approximately **99 days**
+
+## 4. Conclusions
+
+### Key Findings
+- Battery Specifications: 1500mAh 3.7V 18650
+- Average Current Draw: 0.632 mA
+- Estimated Battery Life: 99 days (under ideal conditions)
+
+### Factors Affecting Real-World Performance
+- Signal strength variations
+- Battery health and degradation
+- Operating temperature
+- Environmental interference
+- Device wake-up time overhead
 
 ## Conclusion
 
-This project demonstrates how to build a low-power wireless sensor network with ESP32, ESP-NOW, and MQTT. With a duty cycle of approximately 1.48% and a battery life of over 17 days, this setup is ideal for scenarios requiring periodic data transmission and efficient energy management.
+Based on the calculations, with an average current consumption of approximately 0.615mA, your 1500mAh 3.7V 18650 battery would last around 101.6 days under ideal conditions with very minimal current draw during sleep and the small duty cycle of active transmission.
+
+This estimation assumes that the device sleeps most of the time and only occasionally transmits data for a very short period (17ms). The actual battery life might vary based on environmental factors such as Wi-Fi signal strength, transmission power settings, and temperature.
 
