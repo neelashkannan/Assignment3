@@ -19,6 +19,39 @@ This project is ideal for scenarios like remote environmental monitoring or smar
 ### System Diagram
 ![Architecture Diagram](architectureWB.png)
 
+The image illustrates a robust and efficient IoT architecture designed for environmental monitoring using ESP32 microcontrollers, ESP-NOW, MQTT, and Node-RED. The system is modular, scalable, and energy-efficient, making it suitable for remote or mobile deployment where low power consumption and real-time data access are critical. This architecture integrates multiple sensor nodes, a central gateway, an MQTT broker, and a visualization platform to ensure seamless data collection, transmission, and presentation.
+
+### 1. Sensor Nodes: Portable and Efficient Data Collectors
+At the foundation of the system are the sensor nodes, which are equipped with **ESP32 microcontrollers**, **DHT sensors**, and **18650 Li-ion batteries**. The ESP32 acts as the central processing unit for each node, while the DHT sensor collects environmental parameters such as temperature and humidity. These sensor nodes are battery-powered, making them highly portable and ideal for use in remote or inaccessible areas. The use of rechargeable 18650 Li-ion batteries ensures long-lasting power supply while maintaining a compact design.
+
+To minimize power consumption and optimize data transmission efficiency, the nodes use **ESP-NOW**, a low-power wireless communication protocol. ESP-NOW allows direct, peer-to-peer communication between ESP32 devices without relying on an intermediary Wi-Fi network. This choice of protocol makes the sensor nodes energy-efficient and capable of maintaining a stable connection even in areas with poor Wi-Fi coverage. Each sensor node continuously collects environmental data and sends it wirelessly to the central gateway via ESP-NOW, ensuring a streamlined and localized communication process.
+
+
+### 2. Central ESP32 Gateway: Bridging Sensor Data Locally
+The **central ESP32 gateway** serves as the intermediary between the sensor nodes and the Wi-Fi-connected ESP32, which communicates with the MQTT broker. Unlike the battery-powered sensor nodes, the central gateway is connected to a stable power source through USB, ensuring uninterrupted operation. Its primary function is to receive data from multiple sensor nodes via ESP-NOW and then forward the data locally to another ESP32 via **I2C communication**.
+
+The second ESP32, which is also connected to a stable power source, is responsible for converting the received data into **MQTT messages**, a lightweight and widely used messaging protocol for IoT systems. This ESP32 sends the MQTT messages to the broker over a Wi-Fi network, enabling easy integration with cloud-based or local IoT platforms. This multi-step approach ensures efficient data collection via ESP-NOW and reliable transmission to the broker.
+
+
+### 3. MQTT Broker: Facilitating Reliable Data Communication
+The system employs **Mosquitto**, an open-source MQTT broker, to facilitate message exchange between the Wi-Fi-connected ESP32 and the visualization platform. The MQTT broker acts as a central hub for the IoT ecosystem, managing the communication between data producers (sensor nodes and gateway) and consumers (visualization systems like Node-RED). The lightweight nature of MQTT ensures that the system can handle high-frequency data transmission efficiently without overloading the network.
+
+
+### 4. Node-RED Dashboard: Real-Time Data Visualization
+The **Node-RED dashboard** provides a user-friendly interface for monitoring and managing the IoT system. Node-RED is a flow-based development tool that subscribes to MQTT topics published by the Mosquitto broker and presents the incoming data in real-time. Users can view temperature and humidity readings, analyze trends, and configure custom alerts or actions based on specific conditions.
+
+This visualization layer adds significant value to the system by enabling intuitive data interpretation and real-time monitoring. Additionally, Node-RED can be extended to include automation capabilities, such as sending alerts when thresholds are exceeded or triggering other devices based on sensor data.
+
+
+### 5. Communication Protocols: ESP-NOW, I2C, and MQTT
+The architecture leverages three complementary communication protocols: **ESP-NOW**, **I2C**, and **MQTT**. ESP-NOW is used for local, low-power communication between sensor nodes and the first ESP32 gateway. I2C is employed for short-range data transfer between the first ESP32 (handling ESP-NOW data) and the second ESP32, which manages MQTT communication. Finally, MQTT is used for reliable, lightweight, and scalable communication between the second ESP32 and the MQTT broker over Wi-Fi. Together, these protocols ensure that the system is both energy-efficient and capable of handling real-time data transmission to the cloud.
+
+
+### 6. Data Flow in the System
+The data flow in this architecture begins with the sensor nodes collecting environmental parameters. These nodes transmit the data to the first ESP32 gateway using ESP-NOW. The gateway forwards the data locally to the second ESP32 via I2C. The second ESP32 processes and reformats the data into MQTT messages and publishes them to the Mosquitto broker via Wi-Fi. Finally, the Node-RED dashboard retrieves the data from the broker, allowing users to visualize and interact with the information in real time.
+
+This IoT architecture is a well-rounded solution for remote environmental monitoring. Its use of low-power sensor nodes, decentralized data collection, and efficient communication protocols makes it highly scalable and energy-efficient. The integration of Node-RED and MQTT ensures real-time data visualization and easy management, while the modular design allows for the seamless addition of more sensor nodes or features. Applications of this architecture extend to agriculture, smart cities, industrial monitoring, and other domains where decentralized data collection and real-time insights are essential.
+
 ---
 
 ### Components
@@ -347,8 +380,6 @@ Battery Life ≈ 2373 hours ≈ 99 days
 ```
 
 **Result**: The estimated battery life is approximately **99 days**
-
-## 4. Conclusions
 
 ### Key Findings
 - Battery Specifications: 1500mAh 3.7V 18650
