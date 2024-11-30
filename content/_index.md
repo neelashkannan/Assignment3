@@ -5,6 +5,10 @@ In this project, we will create a robust and energy-efficient **wireless sensor 
 This project is ideal for scenarios like remote environmental monitoring or smart agriculture, where efficient data transmission and power conservation are critical.
 
 ---
+## Working Video
+![Working Video](https://github.com/user-attachments/assets/0dbe7fe6-f6c6-4732-b792-a3051e42566f)
+
+---
 
 ## Features
 1. **Energy Efficiency:** Sender nodes use light sleep mode to conserve power.
