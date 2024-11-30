@@ -6,8 +6,8 @@ This project is ideal for scenarios like remote environmental monitoring or smar
 
 ---
 ## Working Video
-![Working Video](https://github.com/user-attachments/assets/0dbe7fe6-f6c6-4732-b792-a3051e42566f)
 
+{{< youtube gEy73ZoC3jE >}}
 ---
 
 ## Features
